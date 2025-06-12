@@ -31,7 +31,7 @@ const TestimonialsSection = () => {
                     JD
                   </div>
                   <div className="ml-4">
-                    <div className="font-medium">John Doe</div>
+                    <div className="font-medium">Liam Paige</div>
                     <div className="text-sm text-slate-400">DeFi Developer</div>
                   </div>
                 </div>
@@ -77,7 +77,7 @@ const TestimonialsSection = () => {
                     RJ
                   </div>
                   <div className="ml-4">
-                    <div className="font-medium">Robert Johnson</div>
+                    <div className="font-medium">Izan Hernandez</div>
                     <div className="text-sm text-slate-400">NFT Artist</div>
                   </div>
                 </div>
