@@ -21,7 +21,7 @@ export const SUPERETH_ABI = [
   "event CrosschainBurned(address indexed from, uint256 amount)",
 ];
 
-export const CONTRACT_ADDRESS = "";
+export const CONTRACT_ADDRESS = "0x0fba25D5e71Aa1ed0aD8384f693872AbeC79e9B2";
 export const SUPPORTED_CHAINS = [
   {
     chainName: "Ethereum Sepolia",

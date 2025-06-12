@@ -1,20 +1,24 @@
 // src/pages/BridgePage.jsx
-import React, { useState, useEffect } from 'react';
-import { ethers } from 'ethers';
-import { NavLink } from 'react-router-dom';
-import { ArrowLeftRight, Activity } from 'lucide-react';
-import Logo from '../components/common/Logo';
-import BridgeBackground from '../components/common/BridgeBackground';
-import { TabButton } from '../components/common/Inputs';
-import ActionSelector from '../components/bridge/ActionSelector';
-import BridgeForm from '../components/bridge/BridgeForm';
-import DepositForm from '../components/bridge/DepositForm';
-import WithdrawForm from '../components/bridge/WithdrawForm';
-import StatusDisplay from '../components/bridge/StatusDisplay';
-import BalanceDisplay from '../components/bridge/BalanceDisplay';
-import NetworkStats from '../components/bridge/NetworkStats';
-import WalletButton from '../components/bridge/ConnectButton';
-import { SUPERETH_ABI, CONTRACT_ADDRESS, SUPPORTED_CHAINS } from '../components/constants/chain';
+import React, { useState, useEffect } from "react";
+import { ethers } from "ethers";
+import { NavLink } from "react-router-dom";
+import { ArrowLeftRight, Activity } from "lucide-react";
+import Logo from "../components/common/Logo";
+import BridgeBackground from "../components/common/BridgeBackground";
+import { TabButton } from "../components/common/Inputs";
+import ActionSelector from "../components/bridge/ActionSelector";
+import BridgeForm from "../components/bridge/BridgeForm";
+import DepositForm from "../components/bridge/DepositForm";
+import WithdrawForm from "../components/bridge/WithdrawForm";
+import StatusDisplay from "../components/bridge/StatusDisplay";
+import BalanceDisplay from "../components/bridge/BalanceDisplay";
+import NetworkStats from "../components/bridge/NetworkStats";
+import WalletButton from "../components/bridge/ConnectButton";
+import {
+  SUPERETH_ABI,
+  CONTRACT_ADDRESS,
+  SUPPORTED_CHAINS,
+} from "../components/constants/chain";
 
 const BridgePage = () => {
   // State variables
@@ -26,23 +30,27 @@ const BridgePage = () => {
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [bridgeAmount, setBridgeAmount] = useState("");
-  const [bridgeSourceChain, setBridgeSourceChain] = useState(SUPPORTED_CHAINS[0]);
-  const [bridgeTargetChain, setBridgeTargetChain] = useState(SUPPORTED_CHAINS[1]);
+  const [bridgeSourceChain, setBridgeSourceChain] = useState(
+    SUPPORTED_CHAINS[0]
+  );
+  const [bridgeTargetChain, setBridgeTargetChain] = useState(
+    SUPPORTED_CHAINS[1]
+  );
   const [bridgeRecipient, setBridgeRecipient] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
-  const [activeTab, setActiveTab] = useState('bridge');
-  const [activeAction, setActiveAction] = useState('bridge');
+  const [activeTab, setActiveTab] = useState("bridge");
+  const [activeAction, setActiveAction] = useState("bridge");
   const [ethBalance, setEthBalance] = useState("0");
 
   // Effect for wallet connection and chain changes
   useEffect(() => {
     if (window.ethereum) {
-      window.ethereum.on('chainChanged', (chainId) => {
+      window.ethereum.on("chainChanged", (chainId) => {
         setCurrentChainId(chainId);
         resetContractData();
       });
 
-      window.ethereum.on('accountsChanged', (accounts) => {
+      window.ethereum.on("accountsChanged", (accounts) => {
         if (accounts.length > 0) {
           setUserAddress(accounts[0]);
         } else {
@@ -53,8 +61,8 @@ const BridgePage = () => {
     }
     return () => {
       if (window.ethereum) {
-        window.ethereum.removeAllListeners('chainChanged');
-        window.ethereum.removeAllListeners('accountsChanged');
+        window.ethereum.removeAllListeners("chainChanged");
+        window.ethereum.removeAllListeners("accountsChanged");
       }
     };
   }, []);
@@ -80,12 +88,12 @@ const BridgePage = () => {
     }
     try {
       const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts'
+        method: "eth_requestAccounts",
       });
       const account = accounts[0];
       setUserAddress(account);
 
-      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      const chainId = await window.ethereum.request({ method: "eth_chainId" });
       setCurrentChainId(chainId);
 
       const newProvider = new ethers.BrowserProvider(window.ethereum);
@@ -93,7 +101,6 @@ const BridgePage = () => {
 
       const newSigner = await newProvider.getSigner();
       setSigner(newSigner);
-
     } catch (err) {
       console.error("Error connecting wallet:", err);
     }
@@ -152,7 +159,7 @@ const BridgePage = () => {
         return;
       }
       const tx = await contract.deposit({
-        value: ethers.parseEther(depositAmount)
+        value: ethers.parseEther(depositAmount),
       });
       await tx.wait();
       setStatusMessage("Deposit successful!");
@@ -202,36 +209,44 @@ const BridgePage = () => {
       alert("Please enter a valid recipient address.");
       return;
     }
-  
+
     setStatusMessage("Starting bridging operation...");
-  
-    await switchNetwork(bridgeSourceChain.chainId);
-    const contractSource = getSuperETHContract();
-    const decimals = await contractSource.decimals();
-    const burnAmount = ethers.parseUnits(bridgeAmount, decimals);
-  
-    setStatusMessage(`Burning on source chain ${bridgeSourceChain.chainName}...`);
+
     try {
-      const txBurn = await contractSource.crosschainBurn(userAddress, burnAmount);
-      await txBurn.wait();
-      setStatusMessage("Burn on source chain successful!");
-      
-      // Show minting message after burn is successful
-      setTimeout(() => {
-        setStatusMessage(`Minting on target chain ${bridgeTargetChain.chainName}...`);
-        
-        // After 5 seconds of showing the minting message, load the balances
-        setTimeout(async () => {
-          await loadSuperETHBalance();
-          await loadEthBalance();
-        }, 5000);
-        
-      }, 2000); // Short delay after burn success message
-      
+      // Prepare the bridge request data
+      const bridgeData = {
+        userAddress,
+        amount: bridgeAmount,
+        sourceChain: bridgeSourceChain.chainName,
+        destinationChain: bridgeTargetChain.chainName,
+        recipientAddress: bridgeRecipient,
+      };
+
+      // Send request to bridge server
+      const response = await fetch("http://localhost:9762/bridge", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(bridgeData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Bridge operation failed");
+      }
+
+      setStatusMessage("Bridge operation completed successfully!");
+
+      // Update balances after successful bridge
+      setTimeout(async () => {
+        await loadSuperETHBalance();
+        await loadEthBalance();
+      }, 2000);
     } catch (err) {
-      console.error("crosschainBurn error:", err);
-      setStatusMessage("Burn failed (likely not authorized).");
-      return;
+      console.error("Bridge operation error:", err);
+      setStatusMessage(`Bridge operation failed: ${err.message}`);
     }
   }
 
@@ -242,8 +257,8 @@ const BridgePage = () => {
     }
     try {
       await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: chainIdHex }]
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: chainIdHex }],
       });
     } catch (switchError) {
       console.error(switchError);
@@ -254,7 +269,7 @@ const BridgePage = () => {
     <div className="min-h-screen text-white">
       {/* Custom background for bridge page */}
       <BridgeBackground />
-      
+
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md my-5 mb-2bg-slate-950/30 border-b border-white/5">
         <div className="container mx-auto px-6 h-20">
@@ -263,24 +278,24 @@ const BridgePage = () => {
               <NavLink to="/" className="flex items-center space-x-3">
                 <Logo />
               </NavLink>
-              
+
               <nav className="hidden md:flex space-x-2">
                 <TabButton
-                  active={activeTab === 'bridge'}
-                  onClick={() => setActiveTab('bridge')}
+                  active={activeTab === "bridge"}
+                  onClick={() => setActiveTab("bridge")}
                   icon={ArrowLeftRight}
                   label="Bridge"
                 />
                 <TabButton
-                  active={activeTab === 'activity'}
-                  onClick={() => setActiveTab('activity')}
+                  active={activeTab === "activity"}
+                  onClick={() => setActiveTab("activity")}
                   icon={Activity}
                   label="Activity"
                 />
               </nav>
             </div>
 
-            <WalletButton 
+            <WalletButton
               userAddress={userAddress}
               connectWallet={connectWallet}
             />
@@ -294,13 +309,13 @@ const BridgePage = () => {
           {/* Main Form Section */}
           <div className="lg:col-span-2 space-y-8">
             {/* Action Selection */}
-            <ActionSelector 
-              activeAction={activeAction} 
+            <ActionSelector
+              activeAction={activeAction}
               setActiveAction={setActiveAction}
             />
 
             {/* Form Content based on active action */}
-            {activeAction === 'bridge' && (
+            {activeAction === "bridge" && (
               <BridgeForm
                 bridgeAmount={bridgeAmount}
                 setBridgeAmount={setBridgeAmount}
@@ -316,7 +331,7 @@ const BridgePage = () => {
               />
             )}
 
-            {activeAction === 'deposit' && (
+            {activeAction === "deposit" && (
               <DepositForm
                 depositAmount={depositAmount}
                 setDepositAmount={setDepositAmount}
@@ -325,7 +340,7 @@ const BridgePage = () => {
               />
             )}
 
-            {activeAction === 'withdraw' && (
+            {activeAction === "withdraw" && (
               <WithdrawForm
                 withdrawAmount={withdrawAmount}
                 setWithdrawAmount={setWithdrawAmount}

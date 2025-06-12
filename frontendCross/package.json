@@ -11,8 +11,10 @@
   },
   "dependencies": {
     "aos": "^2.3.4",
+    "cors": "^2.8.5",
     "cryptocurrency-icons": "^0.18.1",
     "ethers": "^6.14.3",
+    "express": "^5.1.0",
     "framer-motion": "^12.17.3",
     "lucide-react": "^0.514.0",
     "prism-react-renderer": "^2.4.1",
