@@ -1,10 +1,10 @@
 import React from "react";
-import img from'../../assets/IMAGE 2025-03-15 21:44:59.jpg';
+import logo from "../../assets/image.png";
 
 const Logo = () => (
   <div className="flex items-center gap-2">
     <div className="relative w-20 h-20">
-          <img src={img} alt="Skywire" />
+      <img src={logo} alt="Orion" />
     </div>
   </div>
 );
