@@ -21,6 +21,9 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 
+# Import SuperETH tools
+from supereth_tools import mint_supereth_crosschain, burn_supereth_crosschain
+
 
 def initialize_agent(config: EthAccountWalletProviderConfig):
     """Initialize the agent with CDP Agentkit.
@@ -57,7 +60,16 @@ def initialize_agent(config: EthAccountWalletProviderConfig):
     )
 
     # Get tools for the agent
-    tools = get_langchain_tools(agentkit)
+    agentkit_tools = get_langchain_tools(agentkit)
+    
+    # Add SuperETH tools
+    supereth_tools = [
+        mint_supereth_crosschain,
+        burn_supereth_crosschain,
+    ]
+    
+    # Combine all tools
+    tools = agentkit_tools + supereth_tools
 
     # Store buffered conversation history in memory
     memory = MemorySaver()
@@ -72,6 +84,9 @@ def initialize_agent(config: EthAccountWalletProviderConfig):
             state_modifier=(
                 "You are a helpful agent that can interact onchain using an Ethereum Account Wallet. "
                 "You have tools to send transactions, query blockchain data, and interact with contracts. "
+                "You also have special tools for interacting with the SuperETH contract on Optimism Sepolia - "
+                "including crosschain minting and burning capabilities. "
+                "You are the aiAgent (0xBE4e9cEBC083c3Bb84212DCF1CA5f733bB18a391) who can call these functions. "
                 "If you run into a 5XX (internal) error, ask the user to try again later."
             ),
         ),
@@ -89,6 +104,15 @@ def setup():
     # Configure chain ID and file path
     chain_id = os.getenv("CHAIN_ID", "84532")  # Default to Base Sepolia
     wallet_file = f"wallet_data_{chain_id}.txt"
+    
+    # Create a default .env file with OPTIMISM_CONTRACT_ADDRESS if it doesn't exist
+    if not os.path.exists(".env"):
+        with open(".env", "a") as f:
+            f.write("# SuperETH contract address on Optimism Sepolia\n")
+            f.write("OPTIMISM_CONTRACT_ADDRESS=\n")
+            f.write("# Optimism Sepolia RPC URL (optional)\n")
+            f.write("OPTIMISM_RPC_URL=https://sepolia.optimism.io\n")
+            print("Created .env file. Please add your OPTIMISM_CONTRACT_ADDRESS to it.")
 
     # Load existing wallet data if available
     wallet_data = {}
@@ -210,11 +234,17 @@ def choose_mode():
             return "auto"
         print("Invalid choice. Please try again.")
 
-
+# Setting this environment variable programmatically
+os.environ["OPTIMISM_CONTRACT_ADDRESS"] = "0x0fba25D5e71Aa1ed0aD8384f693872AbeC79e9B2"
 def main():
     """Start the chatbot agent."""
     # Load environment variables
     load_dotenv()
+    
+    # Check if OPTIMISM_CONTRACT_ADDRESS is set
+    if not os.getenv("OPTIMISM_CONTRACT_ADDRESS"):
+        print("Warning: OPTIMISM_CONTRACT_ADDRESS environment variable is not set.")
+        print("SuperETH cross-chain functionality will not work without this.")
 
     # Set up the agent
     agent_executor, agent_config = setup()
