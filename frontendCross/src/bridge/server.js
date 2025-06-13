@@ -5,6 +5,14 @@ import { exec } from "child_process";
 const app = express();
 const PORT = 9762;
 
+// Chain to port mapping
+const CHAIN_PORTS = {
+  Ethereum: 8000,
+  Optimism: 8001,
+  Base: 8002,
+  Zora: 8003,
+};
+
 // Allow cross-origin requests
 app.use(cors());
 app.use(express.json());
@@ -19,10 +27,21 @@ app.post("/bridge", async (req, res) => {
     recipientAddress,
   } = req.body;
 
+  // Get the correct ports for source and destination chains
+  const sourcePort = CHAIN_PORTS[sourceChain];
+  const destPort = CHAIN_PORTS[destinationChain];
+
+  if (!sourcePort || !destPort) {
+    return res.status(400).json({
+      error:
+        "Invalid chain specified. Supported chains: Ethereum, Optimism, Base, Zora",
+    });
+  }
+
   try {
     // First, initiate burn on source chain
     const burnCmd =
-      `curl -X POST http://127.0.0.1:6000/send_prompt ` +
+      `curl -X POST http://127.0.0.1:${sourcePort}/send_prompt ` +
       `-H "Content-Type: application/json" ` +
       `-d '{"prompt":"Initiate crosschain burn of ${amount} tokens from ${userAddress} on ${sourceChain}"}'`;
 
@@ -36,7 +55,7 @@ app.post("/bridge", async (req, res) => {
 
       // If burn is successful, initiate mint on destination chain
       const mintCmd =
-        `curl -X POST http://127.0.0.1:6000/send_prompt ` +
+        `curl -X POST http://127.0.0.1:${destPort}/send_prompt ` +
         `-H "Content-Type: application/json" ` +
         `-d '{"prompt":"Initiate crosschain mint of ${amount} tokens to ${recipientAddress} on ${destinationChain}"}'`;
 
