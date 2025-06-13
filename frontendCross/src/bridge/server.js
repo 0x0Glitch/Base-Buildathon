@@ -10,7 +10,7 @@ const CHAIN_PORTS = {
   Ethereum: 8000,
   Optimism: 8001,
   Base: 8002,
-  Zora: 8003,
+  Matic: 8003,
 };
 
 // Allow cross-origin requests
